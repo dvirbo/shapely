@@ -523,4 +523,3 @@ if __name__ == "__main__":
     
     plot_and_partition(polygon1)
 
-

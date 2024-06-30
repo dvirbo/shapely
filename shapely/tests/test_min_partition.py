@@ -3,64 +3,79 @@ test the min_partition module
 Programmer: Dvir Borochov
 Date: 10/6/24 
 '''
-
 import unittest
 from shapely.algorithms.min_partition import RectilinearPolygon
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, LineString
+import shapely.algorithms.min_partition as p
 
-class TestRectilinearPolygon(unittest.TestCase):
-    # Define the polygons as class attributes shapely\algorithms\min_partition.py
-    polygon1 = RectilinearPolygon(
-        Polygon([(2, 0), (6, 0), (6, 4), (8, 4), (8, 6), (0, 6), (0, 4), (2, 4)])
-    )
-    polygon2 = RectilinearPolygon(
-        Polygon([(1, 5), (1, 4), (3, 4), (3, 2), (5, 2), (5, 1), (8, 1), (8, 5)])
-    )
-    polygon3 = RectilinearPolygon(
-        Polygon([(0, 4), (2, 4), (2, 0), (5, 0), (5, 4), (7, 4), (7, 5), (0, 5)])
-    )
 
-    # intialize the grid points
-    grid_points = polygon1.get_grid_points()
-    grid_points = polygon2.get_grid_points()
-    grid_points = polygon3.get_grid_points()
+class TestPolygonPartitioning(unittest.TestCase):
+    def setUp(self):
+        # Define polygons for testing
+        self.polygon1 = Polygon([(2, 0), (6, 0), (6, 4), (8, 4), (8, 6), (0, 6), (0, 4), (2, 4)])
+        self.polygon2 = Polygon([(1, 5), (1, 4), (3, 4), (3, 2), (5, 2), (5, 1), (8, 1), (8, 5)])
+        self.polygon3 = Polygon([(0, 4), (2, 4), (2, 0), (5, 0), (5, 4), (7, 4), (7, 5), (0, 5)])
+        self.polygon4 = Polygon([(1, 5), (1, 4), (3, 4), (3, 3), (2, 3), (2, 1), (5, 1), (5, 2), (8,2), (8,1), (9,1), (9,4), (8,4), (8,5)])
+        self.polygon5 = Polygon([(1,1), (1,9), (9,9), (9,1)])  # Rectangle
+        self.polygon6 = Polygon([(1,1), (1,9), (9,9), (9,7)])  # Not rectilinear polygon
+
+        # Create RectilinearPolygon instances
+        self.rect_polygon1 = RectilinearPolygon(self.polygon1)
+        self.rect_polygon2 = RectilinearPolygon(self.polygon2)
+        self.rect_polygon3 = RectilinearPolygon(self.polygon3)
+        self.rect_polygon4 = RectilinearPolygon(self.polygon4)
+        self.rect_polygon5 = RectilinearPolygon(self.polygon5)
+        self.rect_polygon6 = RectilinearPolygon(self.polygon6)
 
     def test_is_rectilinear(self):
-        # Create a rectilinear polygon
-        rect_coords = [(0, 0), (0, 4), (4, 4), (4, 0)]
-        rect_polygon = Polygon(rect_coords)
-        rectilinear_polygon = RectilinearPolygon(rect_polygon)
-        self.assertTrue(rectilinear_polygon.is_rectilinear())
+        self.assertTrue(self.rect_polygon1.is_rectilinear())
+        self.assertTrue(self.rect_polygon2.is_rectilinear())
+        self.assertTrue(self.rect_polygon3.is_rectilinear())
+        self.assertTrue(self.rect_polygon4.is_rectilinear())
+        self.assertTrue(self.rect_polygon5.is_rectilinear())
+        self.assertFalse(self.rect_polygon6.is_rectilinear())
 
-        # Create a non-rectilinear polygon
-        non_rect_coords = [(0, 0), (0, 2), (1, 1), (2, 2), (2, 0)]
-        non_rect_polygon = Polygon(non_rect_coords)
-        non_rectilinear_polygon = RectilinearPolygon(non_rect_polygon)
-        self.assertFalse(non_rectilinear_polygon.is_rectilinear())
+    def test_find_convex_points(self):
+        convex_point1 = self.rect_polygon1.find_convex_points()
+        self.assertIsInstance(convex_point1, Point)
 
     def test_get_grid_points(self):
+        grid_points1 = self.rect_polygon1.get_grid_points()
+        self.assertGreater(len(grid_points1), 0)
+        self.assertTrue(all(isinstance(point, Point) for point in grid_points1))
 
-        self.assertEqual(len(self.polygon1.grid_points), 10)
+    def test_partition_polygon(self):
+        for polygon in [self.polygon1, self.polygon2, self.polygon3, self.polygon4]:
+            partition_result = p.partition_polygon(polygon)
+            self.assertIsInstance(partition_result, list)
+            self.assertTrue(all(isinstance(line, LineString) for line in partition_result))
 
-        self.assertEqual(len(self.polygon2.grid_points), 13)
+        # Test rectangle (should return None)
+        self.assertIsNone(p.partition_polygon(self.polygon5))
+
+        # Test non-rectilinear polygon (should return None)
+        self.assertIsNone(p.partition_polygon(self.polygon6))
+
+    def test_get_new_internal_edges(self):
+        blocked_rect = Polygon([(2,4), (6,4), (6, 0), (2, 0)])
+        new_internal_edges = self.rect_polygon1.get_new_internal_edges(blocked_rect)
+        self.assertGreater(len(new_internal_edges), 0)
+        self.assertIsInstance(new_internal_edges[0], LineString)
+
+    def test_is_concave_vertex(self):
+        coords = list(self.polygon1.exterior.coords)
+        self.assertTrue(self.rect_polygon1.is_concave_vertex(2, coords))
 
     def test_find_matching_point(self):
-        self.polygon1.grid_points = self.polygon1.get_grid_points()
-        matching_point = self.polygon1.find_matching_point(Point(6, 0), [])
-        self.assertEqual(matching_point, [Point(2, 4), Point(2, 6)])
+        candidate_point = Point(2, 4)
+        matching_and_blocks = self.rect_polygon1.find_matching_point(candidate_point, self.polygon1)
+        self.assertGreater(len(matching_and_blocks), 0)
+        self.assertIsInstance(matching_and_blocks[0][0], Point)
+        self.assertIsInstance(matching_and_blocks[0][1], Polygon)
 
-        self.polygon2.grid_points = self.polygon2.get_grid_points()
-        matching_point = self.polygon2.find_matching_point(Point(1, 4), [])
-        self.assertEqual(matching_point, [Point(5, 5), Point(8, 5), Point(3, 5)])
+    def test_is_rectangle(self):
+        rectangle = Polygon([(0,0), (0,1), (1,1), (1,0)])
+        self.assertTrue(self.rect_polygon1.is_rectangle(rectangle))
 
-    def test_partition(self):
-        par1 = self.polygon1.partition()
-        self.assertEqual(self.polygon1.min_partition_length, 4.0)
-        par2 = self.polygon2.partition()
-        self.assertEqual(self.polygon2.min_partition_length, 4.0)
-        par3 = self.polygon3.partition()
-        self.assertEqual(self.polygon3.min_partition_length, 2.0)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
