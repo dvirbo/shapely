@@ -80,7 +80,7 @@ class RectilinearPolygon:
             partition_list = item.partition_list
             candidates_and_figures = item.candidates_and_figures
             if not candidates_and_figures:
-                logger.warning("No candidates and figures found.")
+                logger.debug("No candidates and figures found.")
                 continue
             figure_candidate = candidates_and_figures.pop()
             partial_figure = figure_candidate[0]
@@ -478,33 +478,41 @@ def plot_and_partition(polygon: Polygon):
     else:
         logger.debug("Partition result:", partition_result)
 
-        # Create a figure and an axes
-        fig, ax = plt.subplots()
 
-        # Create a Polygon patch and add it to the plot
-        polygon_patch = MplPolygon(
-            list(polygon.exterior.coords),
-            closed=True,
-            edgecolor="blue",
-            facecolor="lightblue",
-        )
-        ax.add_patch(polygon_patch)
+    # Create a figure and an axes
+    fig, ax = plt.subplots()
 
-        # Plot the LineString objects in a different color
-        for line in partition_result:
-            x, y = line.xy
-            ax.plot(x, y, color="red")
+    # Create a Polygon patch and add it to the plot
+    polygon_patch = MplPolygon(
+        list(polygon.exterior.coords),
+        closed=True,
+        edgecolor="blue",
+        facecolor="lightblue",
+    )
+    ax.add_patch(polygon_patch)
 
-        # Set the limits of the plot
-        ax.set_xlim(-1, 9)
-        ax.set_ylim(-1, 7)
+    # Plot the LineString objects in a different color
+    for line in partition_result:
+        x, y = line.xy
+        ax.plot(x, y, color="red")
 
-        # Set the aspect of the plot to be equal
-        ax.set_aspect("equal")
+    # Calculate the bounds of the polygon
+    min_x, min_y, max_x, max_y = polygon.bounds
 
-        # Show the plot
-        plt.show()
+    # Add a margin to the bounds to ensure the shape is not cut off
+    margin = 1  # Adjust the margin as needed
+    ax.set_xlim(min_x - margin, max_x + margin)
+    ax.set_ylim(min_y - margin, max_y + margin)
 
+    # Set the aspect of the plot to be equal
+    ax.set_aspect("equal")
+
+    # Center the plot
+    ax.set_xlim((min_x + max_x) / 2 - (max_x - min_x) / 2 - margin, (min_x + max_x) / 2 + (max_x - min_x) / 2 + margin)
+    ax.set_ylim((min_y + max_y) / 2 - (max_y - min_y) / 2 - margin, (min_y + max_y) / 2 + (max_y - min_y) / 2 + margin)
+
+    # Show the plot
+    plt.show()
 
             
 
@@ -516,10 +524,31 @@ if __name__ == "__main__":
     polygon2 = Polygon([(1, 5), (1, 4), (3, 4), (3, 2), (5, 2), (5, 1), (8, 1), (8, 5)])
     polygon3 = Polygon([(0, 4), (2, 4), (2, 0), (5, 0), (5, 4), (7, 4), (7, 5), (0, 5)])
     polygon4 = Polygon([(1, 5), (1, 4), (3, 4), (3,2), (5,2), (5, 1),(8,1), (8,5)])
-    polygon5 = Polygon([(1, 5), (1, 4), (3, 4), (3, 3), (2, 3), (2, 1), (5, 1), (5, 2), (8,2),(8,1), (9,1), (9,4), (8,4), (8,5)])
+    polygon5 = Polygon(
+        [
+            (1, 5),
+            (1, 4),
+            (3, 4),
+            (3, 3),
+            (2, 3),
+            (2, 1),
+            (5, 1),
+            (5, 2),
+            (8, 2),
+            (8, 1),
+            (9, 1),
+            (9, 0),
+            (10, 0),
+            (10, 5),
+            (9, 5),
+            (9, 4),
+            (8, 4),
+            (8, 5),
+        ]
+    )    
     polygon6 = Polygon([(1,1), (1,9), (9,9), (9,1)]) # Rectangle
     polygon7 = Polygon([(1,1), (1,9), (9,9), (9,7)]) # not rectlinear polygno
     
     
-    plot_and_partition(polygon1)
+    plot_and_partition(polygon5)
 
