@@ -10,6 +10,7 @@ import doctest
 import logging
 import heapq
 import random
+import time
 from matplotlib.patches import Polygon as MplPolygon
 from matplotlib import pyplot as plt
 from classes import PriorityQueueItem, ComperablePolygon
@@ -18,8 +19,11 @@ from shapely.geometry.multipolygon import MultiPolygon
 from shapely.ops import split
 from shapely.geometry import Polygon, LineString, Point
 
+from draw_polygon import generate_rectilinear_polygon
+
 # Set up logging
 logger = logging.getLogger("polygon_partitioning")
+logger.setLevel(logging.DEBUG) # this should allow all messages to be displayed
 
 @staticmethod
 def partition_polygon(polygon: Polygon):
@@ -38,7 +42,6 @@ def partition_polygon(polygon: Polygon):
         return None
 
     initial_convex_point = rectilinear_polygon.find_convex_points()
-    #  rectilinear_polygon.grid_points = rectilinear_polygon.get_grid_points()
     rectilinear_polygon.iterative_partition(initial_convex_point, [])
     return rectilinear_polygon.best_partition
 
@@ -470,7 +473,10 @@ def plot_and_partition(polygon: Polygon):
     Args:
         polygon (Polygon): The polygon to plot and partition.
     """
+    start = time.time()
     partition_result = partition_polygon(polygon)
+    end = time.time()
+    logger.warning(f"Partitioning took {end - start:.4f} seconds.")
 
     if not partition_result:
         # Process the partition result
@@ -549,6 +555,6 @@ if __name__ == "__main__":
     polygon6 = Polygon([(1,1), (1,9), (9,9), (9,1)]) # Rectangle
     polygon7 = Polygon([(1,1), (1,9), (9,9), (9,7)]) # not rectlinear polygno
     
-    
-    plot_and_partition(polygon5)
+    poly = generate_rectilinear_polygon()
+    plot_and_partition(poly)
 
