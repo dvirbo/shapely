@@ -9,14 +9,10 @@ Date: 10/6/24
 import doctest
 import logging
 import heapq
-import random
 import time
-from matplotlib.patches import Polygon as MplPolygon
-from matplotlib import pyplot as plt
 from classes import PriorityQueueItem, ComperablePolygon
 from shapely.geometry.collection import GeometryCollection
 from shapely.geometry.multipolygon import MultiPolygon
-from shapely.ops import split
 from shapely.geometry import Polygon, LineString, Point
 from plot_polygon import plotting
 from rand_rectilinear_polygon import generate_rectilinear_polygon
@@ -532,4 +528,4 @@ if __name__ == "__main__":
     polygon7 = Polygon([(1, 1), (1, 9), (9, 9), (9, 7)])  # not rectlinear polygno
 
     poly = generate_rectilinear_polygon()
-    plot_and_partition(poly)
+    plot_and_partition(polygon5)
