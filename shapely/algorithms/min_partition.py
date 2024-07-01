@@ -18,12 +18,15 @@ from shapely.geometry.collection import GeometryCollection
 from shapely.geometry.multipolygon import MultiPolygon
 from shapely.ops import split
 from shapely.geometry import Polygon, LineString, Point
+from plot_polygon import plotting
+from rand_rectilinear_polygon import generate_rectilinear_polygon
 
-from draw_polygon import generate_rectilinear_polygon
+
 
 # Set up logging
 logger = logging.getLogger("polygon_partitioning")
-logger.setLevel(logging.DEBUG) # this should allow all messages to be displayed
+logger.setLevel(logging.DEBUG)  # this should allow all messages to be displayed
+
 
 @staticmethod
 def partition_polygon(polygon: Polygon):
@@ -35,7 +38,7 @@ def partition_polygon(polygon: Polygon):
     if polygon.area == polygon.minimum_rotated_rectangle.area:
         logger.error("The polygon is already a rectangle.")
         return None
-    
+
     rectilinear_polygon = RectilinearPolygon(polygon)
     if not rectilinear_polygon.is_rectilinear():
         logger.error("The polygon is not rectilinear.")
@@ -74,7 +77,7 @@ class RectilinearPolygon:
             initial_priority,
             partial_figures,
             [(ComperablePolygon(self.polygon), candidate_point)],
-            0 #splited area
+            0,  # splited area
         )
 
         heapq.heappush(pq, initial_item)
@@ -100,15 +103,17 @@ class RectilinearPolygon:
                 if not new_internal_edges:
                     logger.warning("No new internal edges found.")
                     continue
-                
-                splited_area, new_figures = self.split_polygon(partial_figure, blocked_rect, new_internal_edges)
+
+                splited_area, new_figures = self.split_polygon(
+                    partial_figure, blocked_rect, new_internal_edges
+                )
                 logger.debug(f"new figures: {new_figures}")
-                
-                current_area =  splited_area + item.splited_area
+
+                current_area = splited_area + item.splited_area
                 logger.debug(f"current area: {current_area}")
                 new_partition_list = (
                     partition_list + new_internal_edges
-                ) # Add the new internal edges to the partition list
+                )  # Add the new internal edges to the partition list
                 new_total_length = sum(line.length for line in new_partition_list)
                 new_priority = self.check_priority(new_total_length, new_figures)
 
@@ -129,7 +134,10 @@ class RectilinearPolygon:
                     (ComperablePolygon(fig), point) for fig, point in new_figures
                 ]
                 new_item = PriorityQueueItem(
-                    new_priority, new_partition_list, new_candidates_and_figures, current_area
+                    new_priority,
+                    new_partition_list,
+                    new_candidates_and_figures,
+                    current_area,
                 )
                 heapq.heappush(pq, new_item)
 
@@ -162,8 +170,8 @@ class RectilinearPolygon:
             list[tuple[Polygon, Point]]: A list of tuples, each containing a polygon
                                         and a candidate point for further processing.
         """
-        
-        splited_area  = blocked_rect.area
+
+        splited_area = blocked_rect.area
         split_result = polygon.difference(blocked_rect)
         logger.debug(f"Split result: {split_result}")
 
@@ -173,10 +181,12 @@ class RectilinearPolygon:
         elif isinstance(split_result, MultiPolygon):
             split_polygons = list(split_result.geoms)
         elif isinstance(split_result, GeometryCollection):
-            split_polygons = [geom for geom in split_result.geoms if isinstance(geom, Polygon)]
+            split_polygons = [
+                geom for geom in split_result.geoms if isinstance(geom, Polygon)
+            ]
         else:
             split_polygons = []
-        
+
         # Process the split polygons and find candidate points
         result = []
         for poly in split_polygons:
@@ -464,7 +474,8 @@ class RectilinearPolygon:
             bool: True if the polygon is a rectangle, False otherwise.
         """
         return poly.area == poly.minimum_rotated_rectangle.area
-    
+
+
 @staticmethod
 def plot_and_partition(polygon: Polygon):
     """
@@ -483,44 +494,9 @@ def plot_and_partition(polygon: Polygon):
         logger.error("Partition could not be found.")
     else:
         logger.debug("Partition result:", partition_result)
+        
+    plotting(polygon, partition_result)
 
-
-    # Create a figure and an axes
-    fig, ax = plt.subplots()
-
-    # Create a Polygon patch and add it to the plot
-    polygon_patch = MplPolygon(
-        list(polygon.exterior.coords),
-        closed=True,
-        edgecolor="blue",
-        facecolor="lightblue",
-    )
-    ax.add_patch(polygon_patch)
-
-    # Plot the LineString objects in a different color
-    for line in partition_result:
-        x, y = line.xy
-        ax.plot(x, y, color="red")
-
-    # Calculate the bounds of the polygon
-    min_x, min_y, max_x, max_y = polygon.bounds
-
-    # Add a margin to the bounds to ensure the shape is not cut off
-    margin = 1  # Adjust the margin as needed
-    ax.set_xlim(min_x - margin, max_x + margin)
-    ax.set_ylim(min_y - margin, max_y + margin)
-
-    # Set the aspect of the plot to be equal
-    ax.set_aspect("equal")
-
-    # Center the plot
-    ax.set_xlim((min_x + max_x) / 2 - (max_x - min_x) / 2 - margin, (min_x + max_x) / 2 + (max_x - min_x) / 2 + margin)
-    ax.set_ylim((min_y + max_y) / 2 - (max_y - min_y) / 2 - margin, (min_y + max_y) / 2 + (max_y - min_y) / 2 + margin)
-
-    # Show the plot
-    plt.show()
-
-            
 
 if __name__ == "__main__":
 
@@ -529,7 +505,7 @@ if __name__ == "__main__":
     polygon1 = Polygon([(2, 0), (6, 0), (6, 4), (8, 4), (8, 6), (0, 6), (0, 4), (2, 4)])
     polygon2 = Polygon([(1, 5), (1, 4), (3, 4), (3, 2), (5, 2), (5, 1), (8, 1), (8, 5)])
     polygon3 = Polygon([(0, 4), (2, 4), (2, 0), (5, 0), (5, 4), (7, 4), (7, 5), (0, 5)])
-    polygon4 = Polygon([(1, 5), (1, 4), (3, 4), (3,2), (5,2), (5, 1),(8,1), (8,5)])
+    polygon4 = Polygon([(1, 5), (1, 4), (3, 4), (3, 2), (5, 2), (5, 1), (8, 1), (8, 5)])
     polygon5 = Polygon(
         [
             (1, 5),
@@ -551,10 +527,9 @@ if __name__ == "__main__":
             (8, 4),
             (8, 5),
         ]
-    )    
-    polygon6 = Polygon([(1,1), (1,9), (9,9), (9,1)]) # Rectangle
-    polygon7 = Polygon([(1,1), (1,9), (9,9), (9,7)]) # not rectlinear polygno
-    
+    )
+    polygon6 = Polygon([(1, 1), (1, 9), (9, 9), (9, 1)])  # Rectangle
+    polygon7 = Polygon([(1, 1), (1, 9), (9, 9), (9, 7)])  # not rectlinear polygno
+
     poly = generate_rectilinear_polygon()
     plot_and_partition(poly)
-

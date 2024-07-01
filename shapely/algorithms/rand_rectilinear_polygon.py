@@ -1,8 +1,6 @@
-import logging
 import random
 from shapely.geometry import Polygon
 from shapely.geometry import box as shapely_box
-import matplotlib.pyplot as plt
 
 
 def generate_rectilinear_polygon(
@@ -12,7 +10,7 @@ def generate_rectilinear_polygon(
     max_rectangles: int = 15,
     min_size: int = 1,
     max_size: int = 5,
-    increments: int = 100
+    increments: int = 10
 ) -> Polygon:
     """
     Generate a rectilinear polygon composed of touching rectangles.
@@ -82,54 +80,3 @@ def generate_rectilinear_polygon(
 
     return simplified_polygon
 
-def plot_polygon(polygon: Polygon):
-    """
-    Plot the given polygon using matplotlib.
-    
-    :param polygon: Shapely Polygon to plot
-    """
-    # logger = logging.getLogger("polygon_partitioning")
-
-    # partition_result = shapely.algorithms.min_partition.partition_polygon(polygon)
-    
-    
-    # if not partition_result:
-    #     # Process the partition result
-    #     logger.error("Partition could not be found.")
-    # else:
-    #     logger.debug("Partition result:", partition_result)
-    
-    fig, ax = plt.subplots(figsize=(10, 10))
-    
-    # Plot the polygon
-    x, y = polygon.exterior.xy
-    ax.plot(x, y, color='blue')
-    ax.fill(x, y, alpha=0.3, color='blue')
-    
-
-    # # Plot the LineString objects in a different color
-    # for line in partition_result:
-    #     x, y = line.xy
-    #     ax.plot(x, y, color="red")
-    
-    # Set aspect ratio to equal for a proper shape representation
-    ax.set_aspect('equal', 'box')
-    
-    # Set title and labels
-    ax.set_title("Generated Rectilinear Polygon")
-    ax.set_xlabel("X coordinate")
-    ax.set_ylabel("Y coordinate")
-    
-    # Add grid
-    ax.grid(True, linestyle='--', alpha=0.7)
-    
-    plt.show()
-
-# # Example usage
-# polygon = generate_rectilinear_polygon()
-# print(f"Polygon coordinates: {list(polygon.exterior.coords)}")
-# print(f"Polygon area: {polygon.area}")
-# print(f"Polygon is valid: {polygon.is_valid}")
-
-# # Plot the polygon
-# plot_polygon(polygon)
