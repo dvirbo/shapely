@@ -1,3 +1,4 @@
+from rand_rectilinear_polygon import generate_rectilinear_polygon
 from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
 
@@ -48,3 +49,7 @@ def plotting(polygon: Polygon, partition_result: list[LineString]):
 
     # Show the plot
     plt.show()
+
+if __name__ == "__main__":
+    poly = generate_rectilinear_polygon()
+    plotting(poly, [])
